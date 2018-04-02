@@ -1744,15 +1744,6 @@ FTLinstall() {
   local str="Downloading and Installing FTL"
   echo -ne "  ${INFO} ${str}..."
 
-  # Find the latest version tag for FTL
-  latesttag=$(curl -sI https://github.com/pi-hole/FTL/releases/latest | grep "Location" | awk -F '/' '{print $NF}')
-  # Tags should always start with v, check for that.
-  if [[ ! "${latesttag}" == v* ]]; then
-    echo -e "${OVER}  ${CROSS} ${str}"
-    echo -e "  ${COL_LIGHT_RED}Error: Unable to get latest release location from GitHub${COL_NC}"
-    return 1
-  fi
-
   # Move into the temp ftl directory
   pushd "$(mktemp -d)" > /dev/null || { echo "Unable to make temporary directory for FTL binary download"; return 1; }
 
@@ -1761,7 +1752,6 @@ FTLinstall() {
 
   local ftlBranch
   local url
-  local ftlBranch
 
   if [[ -f "/etc/pihole/ftlbranch" ]];then
     ftlBranch=$(</etc/pihole/ftlbranch)
@@ -1771,8 +1761,18 @@ FTLinstall() {
 
   # Determine which version of FTL to download
   if [[ "${ftlBranch}" == "master" ]];then
+    # Find the latest version tag for FTL
+    latesttag=$(curl -sI https://github.com/pi-hole/FTL/releases/latest | grep "Location" | awk -F '/' '{print $NF}')
+    # Tags should always start with v, check for that.
+    if [[ ! "${latesttag}" == v* ]]; then
+      echo -e "${OVER}  ${CROSS} ${str}"
+      echo -e "  ${COL_LIGHT_RED}Error: Unable to get latest release location from GitHub${COL_NC}"
+      return 1
+    fi
+    # Set url to be that of the master branch on github
     url="https://github.com/pi-hole/FTL/releases/download/${latesttag%$'\r'}"
   else
+    # Set url to be that of the pi-hole FTL build server
     url="https://ftl.pi-hole.net/${ftlBranch}"
   fi
 
